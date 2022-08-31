@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use generic_array::{GenericArray, ArrayLength};
 use inquire::Select;
 use rand::prelude::*;
 use snafu::{prelude::*, Whatever};
@@ -14,6 +15,18 @@ enum RPS {
 impl RPS {
     fn all() -> Vec<RPS> {
         vec![RPS::Rock, RPS::Paper, RPS::Scissors]
+    }
+
+    fn rand() -> RPS {
+        *RPS::all().choose(&mut rand::thread_rng()).unwrap()
+    }
+
+    fn loses_to(&self) -> RPS {
+        match self {
+            RPS::Rock => RPS::Paper,
+            RPS::Paper => RPS::Scissors,
+            RPS::Scissors => RPS::Rock,
+        }
     }
 }
 
@@ -49,30 +62,71 @@ impl Display for RPS {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum Winner {
     Human,
     CPU,
 }
 
+#[derive(Debug, Clone, Copy)]
+enum GameResult {
+    Winner(Winner),
+    Tie
+}
+
 trait Player {
     fn turn(&mut self) -> Result<RPS, Whatever>;
+    fn post_turn(&mut self, opponent_choice: RPS, outcome: GameResult) -> Result<(), Whatever>;
 }
 
 struct RNGPlayer {}
 
 impl Player for RNGPlayer {
     fn turn(&mut self) -> Result<RPS, Whatever> {
-        Ok(*RPS::all().choose(&mut rand::thread_rng()).unwrap())
+        Ok(RPS::rand())
     }
+
+    fn post_turn(&mut self, _opponent_choice: RPS, _outcome: GameResult) -> Result<(), Whatever> {
+        Ok(())
+    }
+    
 }
 
 struct Human {}
+
 impl Player for Human {
     fn turn(&mut self) -> Result<RPS, Whatever> {
         Select::new("Select your move.", RPS::all())
             .prompt()
             .whatever_context("Couldn't get user input")
+    }
+
+    fn post_turn(&mut self, _opponent_choice: RPS, _outcome: GameResult) -> Result<(), Whatever> {
+        Ok(())
+    }
+}
+
+struct NGramsPlayer {
+    history: Vec<RPS>
+}
+
+impl NGramsPlayer {
+    fn ngrams<N: ArrayLength<RPS>>() -> Vec<GenericArray<RPS, N>> {
+        for i in 0..N::USIZE {
+            
+        }
+        vec![]
+    }
+}
+
+impl Player for NGramsPlayer {
+    fn turn(&mut self) -> Result<RPS, Whatever> {
+        Ok(RPS::rand())
+    }
+
+    fn post_turn(&mut self, opponent_choice: RPS, _outcome: GameResult) -> Result<(), Whatever> {
+        self.history.push(opponent_choice);
+        Ok(())
     }
 }
 
